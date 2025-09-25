@@ -34,6 +34,7 @@ $user = current_user($pdo);
             <li class="nav-item"><a class="nav-link" href="dashboard.php">Dashboard</a></li>
           <?php endif; ?>
           <li class="nav-item"><a class="nav-link" href="support.php">Support</a></li>
+          <li class="nav-item"><a class="nav-link" href="view_appointments.php">Appointments</a></li> 
           <li class="nav-item"><a class="nav-link nav-cta" href="logout.php">Logout</a></li>
         <?php else: ?>
           <li class="nav-item"><a class="nav-link" href="register.php">Register</a></li>
