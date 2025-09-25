@@ -1,80 +1,60 @@
 <?php
 require_once 'header.php';
-if (!$user || $user['role'] !== 'patient') { header('Location: login.php'); exit; }
-$errors = [];
-$msg = null;
+
+$success = null;
+$error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['create_ticket'])) {
-        $subject = trim($_POST['subject'] ?? '');
-        $message = trim($_POST['message'] ?? '');
-        if (!$subject || !$message) $errors[] = 'Both subject and message required.';
-        if (!$errors) {
-            $pdo->prepare("INSERT INTO tickets (patient_id, subject, message) VALUES (?,?,?)")
-                ->execute([$user['id'], $subject, $message]);
-            $msg = "Ticket submitted. Our team will respond.";
+    $name    = trim($_POST['name'] ?? '');
+    $contact = trim($_POST['contact'] ?? '');
+    $message = trim($_POST['message'] ?? '');
+
+    if ($name === '' || $message === '') {
+        $error = "Name and message are required.";
+    } else {
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO counselling_requests (name, contact, message)
+                VALUES (?, ?, ?)
+            ");
+            $stmt->execute([$name, $contact, $message]);
+            $success = "Your request has been submitted successfully!";
+        } catch (Exception $e) {
+            $error = "Error saving request: " . $e->getMessage();
         }
-    } elseif (isset($_POST['chat'])) {
-        // Tiny rule-based chatbot
-        $q = strtolower(trim($_POST['query'] ?? ''));
-        if (strpos($q, 'appointment') !== false) $bot = "You can book appointments from your Dashboard → 'Book Appointment'. If you need urgent help, contact reception.";
-        elseif (strpos($q, 'counsel') !== false || strpos($q, 'counselling') !== false) $bot = "Counselling slots are available—please book via 'Book Appointment' and choose a mental health counsellor (tagged as doctor).";
-        elseif (strpos($q, 'attendance') !== false) $bot = "Use 'Check in' on your upcoming appointment card to mark attendance. Low attendance alerts appear on your dashboard.";
-        else $bot = "Thanks — a human will respond to your ticket. For simple appointment help ask: 'How to book appointment?'.";
     }
 }
-
-// fetch tickets
-$t = $pdo->prepare("SELECT * FROM tickets WHERE patient_id = ? ORDER BY created_at DESC LIMIT 10");
-$t->execute([$user['id']]);
-$tickets = $t->fetchAll();
 ?>
-<div class="row">
-  <div class="col-md-6">
+
+<div class="row justify-content-center">
+  <div class="col-md-8">
     <div class="app-card">
-      <h5>AI Chatbot (mini)</h5>
-      <form method="post" class="mb-3">
-        <div class="input-group">
-          <input name="query" class="form-control" placeholder="Ask about appointments, counselling, attendance...">
-          <button name="chat" class="btn btn-outline-primary">Ask</button>
+      <h2 class="mb-3">Support / Counselling Request</h2>
+
+      <?php if ($success): ?>
+        <div class="alert alert-success"><?= e($success) ?></div>
+      <?php elseif ($error): ?>
+        <div class="alert alert-danger"><?= e($error) ?></div>
+      <?php endif; ?>
+
+      <form method="post" class="mt-3">
+        <div class="mb-3">
+          <label class="form-label">Name</label>
+          <input type="text" name="name" class="form-control" required>
         </div>
-      </form>
-      <?php if(isset($bot)): ?>
-        <div class="border rounded p-3"><strong>Bot:</strong> <?= e($bot) ?></div>
-      <?php else: ?>
-        <div class="text-muted small">Try: "How to book appointment?" or "I need counselling".</div>
-      <?php endif; ?>
-    </div>
 
-    <div class="app-card mt-3">
-      <h5>Open a Ticket</h5>
-      <?php if($errors): ?><div class="alert alert-danger"><?php foreach($errors as $er) echo "<div>".e($er)."</div>"; ?></div><?php endif; ?>
-      <?php if($msg): ?><div class="alert alert-success"><?= e($msg) ?></div><?php endif; ?>
-      <form method="post">
-        <div class="mb-2"><input name="subject" class="form-control" placeholder="Subject"></div>
-        <div class="mb-2"><textarea name="message" class="form-control" rows="4" placeholder="Message"></textarea></div>
-        <button name="create_ticket" class="btn btn-primary">Send Ticket</button>
-      </form>
-    </div>
-  </div>
+        <div class="mb-3">
+          <label class="form-label">Contact (email or phone)</label>
+          <input type="text" name="contact" class="form-control">
+        </div>
 
-  <div class="col-md-6">
-    <div class="app-card">
-      <h5>Your Tickets</h5>
-      <?php if($tickets): ?>
-        <ul class="list-group">
-          <?php foreach($tickets as $tk): ?>
-            <li class="list-group-item">
-              <strong><?= e($tk['subject']) ?></strong>
-              <div class="small text-muted"><?= e($tk['created_at']) ?> · <?= e($tk['status']) ?></div>
-              <div class="mt-2"><?= e(substr($tk['message'],0,200)) ?></div>
-              <?php if($tk['response']): ?><div class="mt-2 alert alert-light">Response: <?= e($tk['response']) ?></div><?php endif; ?>
-            </li>
-          <?php endforeach; ?>
-        </ul>
-      <?php else: ?>
-        <p class="text-muted small">No tickets yet.</p>
-      <?php endif; ?>
+        <div class="mb-3">
+          <label class="form-label">Message</label>
+          <textarea name="message" class="form-control" rows="4" required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Submit Request</button>
+      </form>
     </div>
   </div>
 </div>
