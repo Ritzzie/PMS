@@ -1,29 +1,90 @@
 <?php
 require_once 'header.php';
-if (!$user || $user['role'] !== 'admin') { header('Location: login.php'); exit; }
 
-$appts = $pdo->query("SELECT a.id, a.scheduled_at, a.status, 
-                             p.full_name AS patient_name, d.full_name AS doctor_name
-                      FROM appointments a
-                      JOIN users p ON a.patient_id=p.id
-                      JOIN users d ON a.doctor_id=d.id
-                      ORDER BY a.scheduled_at DESC")->fetchAll();
+// Redirect if not logged in
+if (!$user) {
+    header("Location: login.php");
+    exit;
+}
+
+// Fetch appointments
+$stmt = $pdo->query("
+  SELECT a.id, a.appointment_time, a.practitioner, a.reason, a.status,
+         p.full_name AS patient_name
+  FROM appointments a
+  JOIN patients p ON p.id = a.patient_id
+  ORDER BY a.appointment_time ASC
+");
+$appointments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-<div class="app-card">
-  <h3>All Appointments</h3>
-  <table class="table table-bordered">
-    <thead><tr><th>ID</th><th>Patient</th><th>Doctor</th><th>Time</th><th>Status</th></tr></thead>
-    <tbody>
-      <?php foreach($appts as $a): ?>
-      <tr>
-        <td><?= e($a['id']) ?></td>
-        <td><?= e($a['patient_name']) ?></td>
-        <td><?= e($a['doctor_name']) ?></td>
-        <td><?= e(date('d M Y H:i', strtotime($a['scheduled_at']))) ?></td>
-        <td><?= e($a['status']) ?></td>
-      </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table>
+
+<div class="row justify-content-center">
+  <div class="col-md-11">
+    <div class="app-card">
+      <h2 class="mb-3">All Appointments</h2>
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Time</th>
+            <th>Practitioner</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($appointments as $a): ?>
+          <tr>
+            <td><?= e($a['patient_name']) ?></td>
+            <td><?= date("M d, Y H:i", strtotime($a['appointment_time'])) ?></td>
+            <td><?= e($a['practitioner']) ?></td>
+            <td><?= e($a['reason']) ?></td>
+            <td>
+              <?php
+                $status = $a['status'];
+                $badgeClass = match ($status) {
+                  'booked' => 'primary',
+                  'checked-in' => 'warning text-dark',
+                  'complete' => 'success',
+                  'cancelled' => 'danger',
+                  default => 'secondary',
+                };
+              ?>
+              <span class="badge bg-<?= $badgeClass ?>"><?= e($status) ?></span>
+            </td>
+            <td>
+              <form method="post" action="update_status.php" class="d-inline">
+                <input type="hidden" name="id" value="<?= $a['id'] ?>">
+                <input type="hidden" name="status" value="checked-in">
+                <button class="btn btn-sm btn-outline-warning"
+                  <?= $status !== 'booked' ? 'disabled' : '' ?>>
+                  Check-in
+                </button>
+              </form>
+              <form method="post" action="update_status.php" class="d-inline">
+                <input type="hidden" name="id" value="<?= $a['id'] ?>">
+                <input type="hidden" name="status" value="complete">
+                <button class="btn btn-sm btn-outline-success"
+                  <?= $status === 'complete' || $status === 'cancelled' ? 'disabled' : '' ?>>
+                  Complete
+                </button>
+              </form>
+              <form method="post" action="update_status.php" class="d-inline">
+                <input type="hidden" name="id" value="<?= $a['id'] ?>">
+                <input type="hidden" name="status" value="cancelled">
+                <button class="btn btn-sm btn-outline-danger"
+                  <?= $status === 'cancelled' ? 'disabled' : '' ?>>
+                  Cancel
+                </button>
+              </form>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
+
 <?php require_once 'footer.php'; ?>
