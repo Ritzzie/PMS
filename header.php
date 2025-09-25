@@ -24,17 +24,25 @@ $user = current_user($pdo);
 <nav class="navbar navbar-expand-lg bg-white py-3 shadow-sm">
   <div class="container">
     <a class="navbar-brand brand" href="index.php">Pakenham PMS</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
     <div class="collapse navbar-collapse" id="nav">
       <ul class="navbar-nav ms-auto align-items-center">
         <?php if($user): ?>
           <li class="nav-item me-2">Hello, <strong><?= e($user['full_name']) ?></strong></li>
+
           <?php if($user['role'] === 'doctor'): ?>
             <li class="nav-item"><a class="nav-link" href="doctor_dashboard.php">Doctor Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="view_appointments.php">Appointments</a></li>
+            <li class="nav-item"><a class="nav-link" href="support_tickets.php">Support Tickets</a></li>
           <?php else: ?>
             <li class="nav-item"><a class="nav-link" href="dashboard.php">Dashboard</a></li>
           <?php endif; ?>
+
           <li class="nav-item"><a class="nav-link" href="support.php">Support</a></li>
           <li class="nav-item"><a class="nav-link nav-cta" href="logout.php">Logout</a></li>
+
         <?php else: ?>
           <li class="nav-item"><a class="nav-link" href="register.php">Register</a></li>
           <li class="nav-item"><a class="nav-link nav-cta" href="login.php">Login</a></li>
